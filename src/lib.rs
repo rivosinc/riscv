@@ -18,6 +18,7 @@
 pub mod asm;
 pub mod delay;
 pub mod interrupt;
+pub mod plic;
 pub mod register;
 
 #[macro_use]
