@@ -64,6 +64,12 @@ impl PmpCfg {
     }
 }
 
+impl std::fmt::Display for PmpCfg {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.pad(&format!("pmpcfg({} {} locked:{})", self.get_mode(), self.get_permission(), self.check_locked()));
+    }
+}
+
 pub struct PmpCfgCsr {
     #[cfg(riscv32)]
     cfgs: [PmpCfg; 4],
