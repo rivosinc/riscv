@@ -76,18 +76,18 @@ impl PmpCfgCsr {
     pub fn get_cfg(&self, index: usize) -> PmpCfg {
         #[cfg(riscv32)]
         {
-            self.cfgs[index]
+            return self.cfgs[index];
         }
 
         #[cfg(riscv64)]
         {
-            self.cfgs[index]
+            return self.cfgs[index];
         }
 
-        #[cfg(any(not(riscv32), not(riscv64)))]
+        #[cfg(not(any(riscv32, riscv64)))]
         {
             _ = index;
-            PmpCfg { byte: 0 }
+            return PmpCfg { byte: 0 };
         }
     }
 }
@@ -104,7 +104,7 @@ impl From<usize> for PmpCfgCsr {
         #[cfg(riscv64)]
         return unsafe { core::mem::transmute(item as u64) };
 
-        #[cfg(any(not(riscv32), not(riscv64)))]
+        #[cfg(not(any(riscv32, riscv64)))]
         {
             _ = item;
             return PmpCfgCsr {};
@@ -118,7 +118,8 @@ impl From<PmpCfgCsr> for usize {
         return unsafe { core::mem::transmute(item) };
     }
 }
-#[cfg(any(not(riscv32), not(riscv64)))]
+
+#[cfg(not(any(riscv32, riscv64)))]
 impl From<PmpCfgCsr> for usize {
     fn from(_item: PmpCfgCsr) -> Self {
         unimplemented!();
