@@ -1,11 +1,124 @@
+pub enum PmpMode {
+    TOR,
+    NA4,
+    NAPOT,
+}
 macro_rules! reg {
     (
         $addr:expr, $csr:ident
     ) => {
         /// Physical memory protection address register
         pub mod $csr {
+            use super::PmpMode;
+            use core::num::NonZeroUsize;
+            use bit_field::BitField;
+
             read_csr_as_usize!($addr);
-            write_csr_as_usize!($addr);
+            write_csr!($addr);
+
+            pub unsafe fn write(mode: PmpMode, addr: usize, size: usize) {
+                match mode {
+                    PmpMode::TOR => write_tor(addr),
+                    PmpMode::NA4 => write_na4(addr),
+                    PmpMode::NAPOT => write_napot(addr, size),
+                }                
+            }
+
+            pub fn decode(mode: PmpMode, bits: usize) -> (usize, Option<NonZeroUsize>) {
+                match mode {
+                    PmpMode::TOR => (bits << 2, None),
+                    PmpMode::NA4 => (bits << 2, None),
+                    PmpMode::NAPOT => {
+                        let (addr, size) = decode_napot(bits);
+                        (addr, Some(size.try_into().unwrap()))
+                    }
+                }
+            }
+
+            #[inline]
+            pub fn read_tor() -> usize {
+                // See riscv priv spec "Physical Memory Protection CSRs
+                // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
+                // and 
+                // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
+                unsafe {
+                    return _read() << 2;
+                }
+            }
+            #[inline]
+            pub unsafe fn write_tor(addr: usize) {
+                // See riscv priv spec "Physical Memory Protection CSRs
+                // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
+                // and 
+                // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
+                let addr = addr >> 2;
+                _write(addr);
+            }
+
+            #[inline]
+            pub fn read_na4() -> usize {
+                // See riscv priv spec "Physical Memory Protection CSRs
+                // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
+                // and 
+                // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
+                unsafe {
+                    return _read() << 2;
+                }
+            }
+            #[inline]
+            pub unsafe fn write_na4(addr: usize) {
+                // See riscv priv spec "Physical Memory Protection CSRs
+                // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
+                // and 
+                // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
+                let addr = addr >> 2;
+                _write(addr);
+            }
+
+            #[inline]
+            pub unsafe fn write_napot(addr: usize, size: usize) {
+                _write(encode_napot(addr,size));
+            }        
+            #[inline]
+            pub fn encode_napot(addr: usize, size: usize) -> usize {
+                // See riscv priv spec "Physical Memory Protection CSRs
+                // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
+                // and 
+                // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
+                // TODO: top bits will get lost on 64bit system
+                let addr = addr >> 2;
+
+                let mut pmpaddr: usize = 0;
+                pmpaddr |= addr; 
+                pmpaddr |= (size - 1) >> 3;
+
+                return pmpaddr;
+            }           
+
+            #[inline]
+            pub fn read_napot() -> (usize, usize) {
+                unsafe {
+                    decode_napot(_read())
+                }
+            }
+            #[inline]
+            pub fn decode_napot(bits: usize) -> (usize, usize) {
+                let mut pmpaddr: usize = bits;
+                //TODO: this will lose the high two bits if it was a 34 bit address
+                let address = pmpaddr;
+
+                // find first zero in pmpaddr
+                let mut range_mask = 1;
+                let mut size = 8;
+                while (pmpaddr.get_bit(0) != false) {
+                    pmpaddr = pmpaddr >> 1;
+                    range_mask = (range_mask << 1) | 0x1;
+                    size = size << 1;
+                }
+
+                let address = (address & range_mask) << 2;
+                return (address, size);
+            }           
         }
     };
 }
@@ -26,3 +139,5 @@ reg!(0x3BC, pmpaddr12);
 reg!(0x3BD, pmpaddr13);
 reg!(0x3BE, pmpaddr14);
 reg!(0x3BF, pmpaddr15);
+
+
