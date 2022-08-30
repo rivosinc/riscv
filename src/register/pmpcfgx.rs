@@ -144,6 +144,97 @@ macro_rules! clear_pmpcfg {
     };
 }
 
+#[cfg(riscv32)]
+pub unsafe fn set_cfg_entry(index: usize, cfg: PmpCfg) {
+    assert!(index < 64);
+
+    let cfg_idx = index % 4;
+
+    match index / 4 {
+        0 => pmpcfg0::set(cfg_idx, cfg),
+        1 => pmpcfg1::set(cfg_idx, cfg),
+        2 => pmpcfg2::set(cfg_idx, cfg),
+        3 => pmpcfg3::set(cfg_idx, cfg),
+        4 => pmpcfg4::set(cfg_idx, cfg),
+        5 => pmpcfg5::set(cfg_idx, cfg),
+        6 => pmpcfg6::set(cfg_idx, cfg),
+        7 => pmpcfg7::set(cfg_idx, cfg),
+        8 => pmpcfg8::set(cfg_idx, cfg),
+        9 => pmpcfg9::set(cfg_idx, cfg),
+        10 => pmpcfg10::set(cfg_idx, cfg),
+        11 => pmpcfg11::set(cfg_idx, cfg),
+        12 => pmpcfg12::set(cfg_idx, cfg),
+        13 => pmpcfg13::set(cfg_idx, cfg),
+        14 => pmpcfg14::set(cfg_idx, cfg),
+        15 => pmpcfg15::set(cfg_idx, cfg),
+        _ => unreachable!(),
+    }
+}
+
+#[cfg(riscv64)]
+pub unsafe fn set_cfg_entry(index: usize, cfg: PmpCfg) {
+    assert!(index < 64);
+
+    let cfg_idx = index % 8;
+
+    // NOTE: This may be slower than either dividing by 16 directly or
+    // creating a jump table
+    match index / 8 {
+        0 => pmpcfg0::set(cfg_idx, cfg),
+        1 => pmpcfg2::set(cfg_idx, cfg),
+        2 => pmpcfg4::set(cfg_idx, cfg),
+        3 => pmpcfg6::set(cfg_idx, cfg),
+        4 => pmpcfg8::set(cfg_idx, cfg),
+        5 => pmpcfg10::set(cfg_idx, cfg),
+        6 => pmpcfg12::set(cfg_idx, cfg),
+        7 => pmpcfg14::set(cfg_idx, cfg),
+        _ => unreachable!(),
+    }
+}
+
+#[cfg(riscv32)]
+pub unsafe fn set_cfg_csr(reg: usize, val: PmpCfgCsr) {
+    assert!(reg < 16);
+
+    match reg {
+        0 => pmpcfg0::write(val),
+        1 => pmpcfg1::write(val),
+        2 => pmpcfg2::write(val),
+        3 => pmpcfg3::write(val),
+        4 => pmpcfg4::write(val),
+        5 => pmpcfg5::write(val),
+        6 => pmpcfg6::write(val),
+        7 => pmpcfg7::write(val),
+        8 => pmpcfg8::write(val),
+        9 => pmpcfg9::write(val),
+        10 => pmpcfg10::write(val),
+        11 => pmpcfg11::write(val),
+        12 => pmpcfg12::write(val),
+        13 => pmpcfg13::write(val),
+        14 => pmpcfg14::write(val),
+        15 => pmpcfg15::write(val),
+        _ => unreachable!(),
+    }
+}
+
+#[cfg(riscv64)]
+pub unsafe fn set_cfg_csr(reg: usize, val: PmpCfgCsr) {
+    assert!(reg < 16);
+    assert!(reg % 2 == 0);
+
+    match reg {
+        0 => pmpcfg0::write(val),
+        2 => pmpcfg2::write(val),
+        4 => pmpcfg4::write(val),
+        6 => pmpcfg6::write(val),
+        8 => pmpcfg8::write(val),
+        10 => pmpcfg10::write(val),
+        12 => pmpcfg12::write(val),
+        14 => pmpcfg14::write(val),
+        _ => unreachable!(),
+    }
+}
+
 // TODO: See if there is some way to make the macro take just an integer
 // argument
 macro_rules! pmpcfg {
