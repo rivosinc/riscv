@@ -35,12 +35,12 @@ pub struct PmpCfg {
 impl PmpCfg {
     pub fn new(mode: Mode, permission: Permission, locked: bool) -> PmpCfg {
         return PmpCfg {
-            byte: (locked as u8) << 7 | (mode as u8) << 3 | (permission as u8)
+            byte: (locked as u8) << 7 | (mode as u8) << 3 | (permission as u8),
         };
     }
 
     pub fn get_mode(&self) -> Mode {
-        return unsafe { core::mem::transmute(self.byte.get_bits(3..=4)) }
+        return unsafe { core::mem::transmute(self.byte.get_bits(3..=4)) };
     }
 
     pub fn set_mode(&mut self, mode: Mode) {
@@ -48,7 +48,7 @@ impl PmpCfg {
     }
 
     pub fn get_permission(&self) -> Permission {
-        return unsafe { core::mem::transmute(self.byte.get_bits(0..=2)) }
+        return unsafe { core::mem::transmute(self.byte.get_bits(0..=2)) };
     }
 
     pub fn set_permission(&mut self, permission: Permission) {
@@ -94,21 +94,17 @@ impl From<usize> for PmpCfgCsr {
         // casts will never drop data. The transmutes are safe because it is
         // guaranteed that the size of a PmpCfgCsr struct to be the word size
         // fof the target architecture.
-        return unsafe {
-            #[cfg(riscv32)]
-            core::mem::transmute(item as u32);
+        #[cfg(riscv32)]
+        return unsafe { core::mem::transmute(item as u32) };
 
-            #[cfg(riscv64)]
-            core::mem::transmute(item as u64)
-        }
+        #[cfg(riscv64)]
+        return unsafe { core::mem::transmute(item as u64) };
     }
 }
 
 impl From<PmpCfgCsr> for usize {
     fn from(item: PmpCfgCsr) -> Self {
-        return unsafe {
-            core::mem::transmute(item)
-        }
+        return unsafe { core::mem::transmute(item) };
     }
 }
 
@@ -157,7 +153,7 @@ macro_rules! pmpcfg {
         /// Physical memory protection configuration
         /// Struct pmpcfg{N} contains pmp{N}cfg - pmp{N+3}cfg for RV32, and pmp{N}cfg - pmp{N+7}cfg for RV64
         pub mod $csr {
-            use super::{PmpCfgCsr, PmpCfg};
+            use super::{PmpCfg, PmpCfgCsr};
             use bit_field::BitField;
 
             read_csr!($addr);
@@ -170,7 +166,9 @@ macro_rules! pmpcfg {
 
             #[inline]
             pub fn write(cfg: PmpCfgCsr) {
-                unsafe { _write(cfg.into()); }
+                unsafe {
+                    _write(cfg.into());
+                }
             }
 
             set_pmpcfg!();
@@ -218,4 +216,3 @@ pmpcfg!(0x3AE, pmpcfg14);
 
 #[cfg(riscv32)]
 pmpcfg!(0x3AF, pmpcfg15);
-
