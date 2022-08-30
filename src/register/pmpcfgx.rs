@@ -76,14 +76,18 @@ impl PmpCfgCsr {
     pub fn get_cfg(&self, index: usize) -> PmpCfg {
         #[cfg(riscv32)]
         {
-            assert!(index < 4);
-            self.cfgs[3 - index]
+            self.cfgs[index]
         }
 
         #[cfg(riscv64)]
         {
-            assert!(index < 8);
-            self.cfgs[7 - index]
+            self.cfgs[index]
+        }
+
+        #[cfg(any(not(riscv32), not(riscv64)))]
+        {
+            _ = index;
+            PmpCfg { byte: 0 }
         }
     }
 }
@@ -99,26 +103,32 @@ impl From<usize> for PmpCfgCsr {
 
         #[cfg(riscv64)]
         return unsafe { core::mem::transmute(item as u64) };
+
+        #[cfg(any(not(riscv32), not(riscv64)))]
+        {
+            _ = item;
+            return PmpCfgCsr {};
+        }
     }
 }
 
+#[cfg(any(riscv32, riscv64))]
 impl From<PmpCfgCsr> for usize {
     fn from(item: PmpCfgCsr) -> Self {
         return unsafe { core::mem::transmute(item) };
     }
 }
-
+#[cfg(any(not(riscv32), not(riscv64)))]
+impl From<PmpCfgCsr> for usize {
+    fn from(_item: PmpCfgCsr) -> Self {
+        unimplemented!();
+    }
+}
 macro_rules! set_pmpcfg {
     () => {
         /// Set the pmp configuration corresponding to the index
         #[inline]
         pub unsafe fn set(index: usize, cfg: PmpCfg) {
-            #[cfg(riscv32)]
-            assert!(index < 4);
-
-            #[cfg(riscv64)]
-            assert!(index < 8);
-
             let mut value = _read();
             value.set_bits(8 * index..=8 * index + 7, cfg.byte.into());
             _write(value);
@@ -131,12 +141,6 @@ macro_rules! clear_pmpcfg {
         /// Clear the pmp configuration corresponding to the index
         #[inline]
         pub unsafe fn clear(index: usize) {
-            #[cfg(riscv32)]
-            assert!(index < 4);
-
-            #[cfg(riscv64)]
-            assert!(index < 8);
-
             let mut value = _read();
             value.set_bits(8 * index..=8 * index + 7, 0);
             _write(value);
