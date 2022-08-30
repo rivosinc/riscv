@@ -94,13 +94,11 @@ impl From<usize> for PmpCfgCsr {
         // casts will never drop data. The transmutes are safe because it is
         // guaranteed that the size of a PmpCfgCsr struct to be the word size
         // fof the target architecture.
-        return unsafe {
-            #[cfg(riscv32)]
-            core::mem::transmute(item as u32);
+        #[cfg(riscv32)]
+        return unsafe { core::mem::transmute(item as u32) };
 
-            #[cfg(riscv64)]
-            core::mem::transmute(item as u64)
-        };
+        #[cfg(riscv64)]
+        return unsafe { core::mem::transmute(item as u64) };
     }
 }
 
