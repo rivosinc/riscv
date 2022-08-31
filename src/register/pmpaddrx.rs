@@ -62,16 +62,11 @@ impl PmpAddr {
                 size = size << 1;
             }
 
-            let address = (address & ~range_mask) << 2;
+            let address = (address & !range_mask) << 2;
             return (address, size);
         }
 }
 
-impl To<PmpAddr> for usize {
-    fn to(pmpaddr: PmpAddr) -> usize {
-        return pmpaddr.bits;
-    }
-}
 impl From<usize> for PmpAddr {
     fn from(bits: usize) -> PmpAddr {
         return PmpAddr {bits: bits};
