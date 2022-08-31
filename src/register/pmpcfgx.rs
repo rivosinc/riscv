@@ -312,3 +312,14 @@ pmpcfg!(0x3AE, pmpcfg14);
 
 #[cfg(riscv32)]
 pmpcfg!(0x3AF, pmpcfg15);
+
+#[cfg(test)]
+mod tests {
+    use core::mem::size_of;
+    use crate::register::PmpCfg;
+
+    #[test]
+    fn sizeof_pmpcfg() {
+        assert_eq!(size_of::<PmpCfg>(), 1)
+    }
+}
