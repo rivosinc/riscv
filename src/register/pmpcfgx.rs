@@ -1,7 +1,10 @@
 /// Physical memory protection configuration
 use bit_field::BitField;
 
+use core::convert::From;
+
 /// Permission enum contains all possible permission modes for pmp registers
+/// NOTE: All encodings where R = 0 and W = 1 are reserved
 #[derive(Clone, Copy, Debug)]
 pub enum Permission {
     NONE = 0b000,
@@ -14,119 +17,309 @@ pub enum Permission {
     RWX = 0b111,
 }
 
-/// Range enum contains all possible addressing modes for pmp registers
+/// Mode enum contains all possible addressing modes for pmp registers
 #[derive(Clone, Copy, Debug)]
-pub enum Range {
+pub enum Mode {
     OFF = 0b00,
     TOR = 0b01,
     NA4 = 0b10,
     NAPOT = 0b11,
 }
 
-/// Pmp struct holds a high-level representation of a single pmp configuration
+/// PmpCfg struct holds a high-level representation of a single pmp configuration
 #[derive(Clone, Copy, Debug)]
-pub struct Pmp {
-    /// raw bits
+pub struct PmpCfg {
     pub byte: u8,
-    /// Current PMP Permission
-    pub permission: Permission,
-    /// Current PMP Range
-    pub range: Range,
-    /// Is PMP locked?
-    pub locked: bool,
 }
 
-pub struct Pmpcsr {
-    /// Holds the raw contents of a PMP CSR Register
-    pub bits: usize,
+impl PmpCfg {
+    pub fn new(mode: Mode, permission: Permission, locked: bool) -> PmpCfg {
+        return PmpCfg {
+            byte: (locked as u8) << 7 | (mode as u8) << 3 | (permission as u8),
+        };
+    }
+
+    pub fn get_mode(&self) -> Mode {
+        return unsafe { core::mem::transmute(self.byte.get_bits(3..=4)) };
+    }
+
+    pub fn set_mode(&mut self, mode: Mode) {
+        self.byte.set_bits(3..=4, ((mode as u8) & 0b11) << 3);
+    }
+
+    pub fn get_permission(&self) -> Permission {
+        return unsafe { core::mem::transmute(self.byte.get_bits(0..=2)) };
+    }
+
+    pub fn set_permission(&mut self, permission: Permission) {
+        self.byte.set_bits(0..=2, (permission as u8) & 0b111);
+    }
+
+    pub fn set_locked(&mut self) {
+        self.byte.set_bit(7, true);
+    }
+
+    pub fn check_locked(&self) -> bool {
+        return self.byte.get_bit(7);
+    }
 }
 
-impl Pmpcsr {
-    /// Take the register contents and translate into a Pmp configuration struct
-    #[inline]
-    pub fn into_config(&self, index: usize) -> Pmp {
+pub struct PmpCfgCsr {
+    #[cfg(riscv32)]
+    cfgs: [PmpCfg; 4],
+
+    #[cfg(riscv64)]
+    cfgs: [PmpCfg; 8],
+}
+
+impl PmpCfgCsr {
+    pub fn get_cfg(&self, index: usize) -> PmpCfg {
         #[cfg(riscv32)]
-        assert!(index < 4);
+        {
+            return self.cfgs[index];
+        }
 
         #[cfg(riscv64)]
-        assert!(index < 8);
+        {
+            return self.cfgs[index];
+        }
 
-        let byte = self.bits.get_bits(8 * index..=8 * index + 7) as u8;
-        Pmp {
-            byte,
-            permission: match byte.get_bits(0..=2) {
-                0 => Permission::NONE,
-                1 => Permission::R,
-                2 => Permission::W,
-                3 => Permission::RW,
-                4 => Permission::X,
-                5 => Permission::RX,
-                6 => Permission::WX,
-                7 => Permission::RWX,
-                _ => unreachable!(),
-            },
-            range: match byte.get_bits(3..=4) {
-                0 => Range::OFF,
-                1 => Range::TOR,
-                2 => Range::NA4,
-                3 => Range::NAPOT,
-                _ => unreachable!(),
-            },
-            locked: byte.get_bit(7) as bool,
+        #[cfg(not(any(riscv32, riscv64)))]
+        {
+            _ = index;
+            return PmpCfg { byte: 0 };
         }
     }
 }
 
-/// Physical memory protection configuration
-/// pmpcfg0 struct contains pmp0cfg - pmp3cfg for RV32, and pmp0cfg - pmp7cfg for RV64
-pub mod pmpcfg0 {
-    use super::{Permission, Pmpcsr, Range};
-    use bit_field::BitField;
+impl From<usize> for PmpCfgCsr {
+    fn from(item: usize) -> Self {
+        // Safety: We know usize based on the target architecture, so these
+        // casts will never drop data. The transmutes are safe because it is
+        // guaranteed that the size of a PmpCfgCsr struct to be the word size
+        // fof the target architecture.
+        #[cfg(riscv32)]
+        return unsafe { core::mem::transmute(item as u32) };
 
-    read_csr_as!(Pmpcsr, 0x3A0);
-    write_csr_as_usize!(0x3A0);
+        #[cfg(riscv64)]
+        return unsafe { core::mem::transmute(item as u64) };
 
-    set_pmp!();
-    clear_pmp!();
+        #[cfg(not(any(riscv32, riscv64)))]
+        {
+            _ = item;
+            return PmpCfgCsr {};
+        }
+    }
 }
 
-/// Physical memory protection configuration
-/// pmpcfg1 struct contains pmp4cfg - pmp7cfg for RV32 only
+#[cfg(any(riscv32, riscv64))]
+impl From<PmpCfgCsr> for usize {
+    fn from(item: PmpCfgCsr) -> Self {
+        return unsafe { core::mem::transmute(item) };
+    }
+}
+
+#[cfg(not(any(riscv32, riscv64)))]
+impl From<PmpCfgCsr> for usize {
+    fn from(_item: PmpCfgCsr) -> Self {
+        unimplemented!();
+    }
+}
+macro_rules! set_pmpcfg {
+    () => {
+        /// Set the pmp configuration corresponding to the index
+        #[inline]
+        pub unsafe fn set(index: usize, cfg: PmpCfg) {
+            let mut value = _read();
+            value.set_bits(8 * index..=8 * index + 7, cfg.byte.into());
+            _write(value);
+        }
+    };
+}
+
+macro_rules! clear_pmpcfg {
+    () => {
+        /// Clear the pmp configuration corresponding to the index
+        #[inline]
+        pub unsafe fn clear(index: usize) {
+            let mut value = _read();
+            value.set_bits(8 * index..=8 * index + 7, 0);
+            _write(value);
+        }
+    };
+}
+
 #[cfg(riscv32)]
-pub mod pmpcfg1 {
-    use super::{Permission, Pmpcsr, Range};
-    use bit_field::BitField;
+pub unsafe fn set_cfg_entry(index: usize, cfg: PmpCfg) {
+    assert!(index < 64);
 
-    read_csr_as!(Pmpcsr, 0x3A1);
-    write_csr_as_usize_rv32!(0x3A1);
+    let cfg_idx = index % 4;
 
-    set_pmp!();
-    clear_pmp!();
+    match index / 4 {
+        0 => pmpcfg0::set(cfg_idx, cfg),
+        1 => pmpcfg1::set(cfg_idx, cfg),
+        2 => pmpcfg2::set(cfg_idx, cfg),
+        3 => pmpcfg3::set(cfg_idx, cfg),
+        4 => pmpcfg4::set(cfg_idx, cfg),
+        5 => pmpcfg5::set(cfg_idx, cfg),
+        6 => pmpcfg6::set(cfg_idx, cfg),
+        7 => pmpcfg7::set(cfg_idx, cfg),
+        8 => pmpcfg8::set(cfg_idx, cfg),
+        9 => pmpcfg9::set(cfg_idx, cfg),
+        10 => pmpcfg10::set(cfg_idx, cfg),
+        11 => pmpcfg11::set(cfg_idx, cfg),
+        12 => pmpcfg12::set(cfg_idx, cfg),
+        13 => pmpcfg13::set(cfg_idx, cfg),
+        14 => pmpcfg14::set(cfg_idx, cfg),
+        15 => pmpcfg15::set(cfg_idx, cfg),
+        _ => unreachable!(),
+    }
 }
 
-/// Physical memory protection configuration
-/// pmpcfg2 struct contains pmp8cfg - pmp11cfg for RV32, or pmp8cfg - pmp15cfg for RV64
-pub mod pmpcfg2 {
-    use super::{Permission, Pmpcsr, Range};
-    use bit_field::BitField;
+#[cfg(riscv64)]
+pub unsafe fn set_cfg_entry(index: usize, cfg: PmpCfg) {
+    assert!(index < 64);
 
-    read_csr_as!(Pmpcsr, 0x3A2);
-    write_csr_as_usize!(0x3A2);
+    let cfg_idx = index % 8;
 
-    set_pmp!();
-    clear_pmp!();
+    // NOTE: This may be slower than either dividing by 16 directly or
+    // creating a jump table
+    match index / 8 {
+        0 => pmpcfg0::set(cfg_idx, cfg),
+        1 => pmpcfg2::set(cfg_idx, cfg),
+        2 => pmpcfg4::set(cfg_idx, cfg),
+        3 => pmpcfg6::set(cfg_idx, cfg),
+        4 => pmpcfg8::set(cfg_idx, cfg),
+        5 => pmpcfg10::set(cfg_idx, cfg),
+        6 => pmpcfg12::set(cfg_idx, cfg),
+        7 => pmpcfg14::set(cfg_idx, cfg),
+        _ => unreachable!(),
+    }
 }
 
-/// Physical memory protection configuration
-/// pmpcfg3 struct contains pmp12cfg - pmp15cfg for RV32 only
 #[cfg(riscv32)]
-pub mod pmpcfg3 {
-    use super::{Permission, Pmpcsr, Range};
-    use bit_field::BitField;
+pub unsafe fn set_cfg_csr(reg: usize, val: PmpCfgCsr) {
+    assert!(reg < 16);
 
-    read_csr_as!(Pmpcsr, 0x3A3);
-    write_csr_as_usize_rv32!(0x3A3);
+    match reg {
+        0 => pmpcfg0::write(val),
+        1 => pmpcfg1::write(val),
+        2 => pmpcfg2::write(val),
+        3 => pmpcfg3::write(val),
+        4 => pmpcfg4::write(val),
+        5 => pmpcfg5::write(val),
+        6 => pmpcfg6::write(val),
+        7 => pmpcfg7::write(val),
+        8 => pmpcfg8::write(val),
+        9 => pmpcfg9::write(val),
+        10 => pmpcfg10::write(val),
+        11 => pmpcfg11::write(val),
+        12 => pmpcfg12::write(val),
+        13 => pmpcfg13::write(val),
+        14 => pmpcfg14::write(val),
+        15 => pmpcfg15::write(val),
+        _ => unreachable!(),
+    }
+}
 
-    set_pmp!();
-    clear_pmp!();
+#[cfg(riscv64)]
+pub unsafe fn set_cfg_csr(reg: usize, val: PmpCfgCsr) {
+    assert!(reg < 16);
+    assert!(reg % 2 == 0);
+
+    match reg {
+        0 => pmpcfg0::write(val),
+        2 => pmpcfg2::write(val),
+        4 => pmpcfg4::write(val),
+        6 => pmpcfg6::write(val),
+        8 => pmpcfg8::write(val),
+        10 => pmpcfg10::write(val),
+        12 => pmpcfg12::write(val),
+        14 => pmpcfg14::write(val),
+        _ => unreachable!(),
+    }
+}
+
+// TODO: See if there is some way to make the macro take just an integer
+// argument
+macro_rules! pmpcfg {
+    (
+        $addr: expr, $csr: ident
+    ) => {
+        /// Physical memory protection configuration
+        /// Struct pmpcfg{N} contains pmp{N}cfg - pmp{N+3}cfg for RV32, and pmp{N}cfg - pmp{N+7}cfg for RV64
+        pub mod $csr {
+            use super::{PmpCfg, PmpCfgCsr};
+            use bit_field::BitField;
+
+            read_csr!($addr);
+            write_csr!($addr);
+
+            #[inline]
+            pub fn read() -> PmpCfgCsr {
+                return unsafe { PmpCfgCsr::from(_read()) };
+            }
+
+            #[inline]
+            pub fn write(cfg: PmpCfgCsr) {
+                unsafe {
+                    _write(cfg.into());
+                }
+            }
+
+            set_pmpcfg!();
+            clear_pmpcfg!();
+        }
+    };
+}
+
+pmpcfg!(0x3A0, pmpcfg0);
+
+#[cfg(riscv32)]
+pmpcfg!(0x3A1, pmpcfg1);
+
+pmpcfg!(0x3A2, pmpcfg2);
+
+#[cfg(riscv32)]
+pmpcfg!(0x3A3, pmpcfg3);
+
+pmpcfg!(0x3A4, pmpcfg4);
+
+#[cfg(riscv32)]
+pmpcfg!(0x3A5, pmpcfg5);
+
+pmpcfg!(0x3A6, pmpcfg6);
+
+#[cfg(riscv32)]
+pmpcfg!(0x3A7, pmpcfg7);
+
+pmpcfg!(0x3A8, pmpcfg8);
+
+#[cfg(riscv32)]
+pmpcfg!(0x3A9, pmpcfg9);
+
+pmpcfg!(0x3AA, pmpcfg10);
+
+#[cfg(riscv32)]
+pmpcfg!(0x3AB, pmpcfg11);
+
+pmpcfg!(0x3AC, pmpcfg12);
+
+#[cfg(riscv32)]
+pmpcfg!(0x3AD, pmpcfg13);
+
+pmpcfg!(0x3AE, pmpcfg14);
+
+#[cfg(riscv32)]
+pmpcfg!(0x3AF, pmpcfg15);
+
+#[cfg(test)]
+mod tests {
+    use core::mem::size_of;
+    use crate::register::PmpCfg;
+
+    #[test]
+    fn sizeof_pmpcfg() {
+        assert_eq!(size_of::<PmpCfg>(), 1)
+    }
 }
