@@ -1,5 +1,5 @@
-use bit_field::BitField;
 use crate::register::pmpcfgx::Mode;
+use bit_field::BitField;
 use core::num::NonZeroUsize;
 
 #[derive(Copy, Clone, Debug)]
@@ -8,68 +8,68 @@ pub struct PmpAddr {
 }
 
 impl PmpAddr {
-        #[inline]
-        pub fn decode(&self, mode: Mode) -> (usize, Option<NonZeroUsize>) {
-            match mode {
-                Mode::OFF => (self.bits, None),
-                Mode::TOR => (self.bits << 2, None),
-                Mode::NA4 => (self.bits << 2, None),
-                Mode::NAPOT => {
-                    let (addr, size) = Self::decode_napot(self.bits);
-                    (addr, Some(size.try_into().unwrap()))
-                }
+    #[inline]
+    pub fn decode(&self, mode: Mode) -> (usize, Option<NonZeroUsize>) {
+        match mode {
+            Mode::OFF => (self.bits, None),
+            Mode::TOR => (self.bits << 2, None),
+            Mode::NA4 => (self.bits << 2, None),
+            Mode::NAPOT => {
+                let (addr, size) = Self::decode_napot(self.bits);
+                (addr, Some(size.try_into().unwrap()))
             }
         }
+    }
 
-        #[inline]
-        pub fn encode(&mut self, mode: Mode, addr: usize, size: Option<NonZeroUsize>) {
-            self.bits = match mode {
-                Mode::OFF => 0,
-                Mode::TOR => addr >> 2,
-                Mode::NA4 => addr >> 2,
-                Mode::NAPOT => Self::encode_napot(addr, size.unwrap().into()),
-            }
+    #[inline]
+    pub fn encode(&mut self, mode: Mode, addr: usize, size: Option<NonZeroUsize>) {
+        self.bits = match mode {
+            Mode::OFF => 0,
+            Mode::TOR => addr >> 2,
+            Mode::NA4 => addr >> 2,
+            Mode::NAPOT => Self::encode_napot(addr, size.unwrap().into()),
+        }
+    }
+
+    #[inline]
+    fn encode_napot(addr: usize, size: usize) -> usize {
+        // See riscv priv spec "Physical Memory Protection CSRs
+        // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
+        // and
+        // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
+        // TODO: top bits will get lost on 64bit system
+        let addr = addr >> 2;
+
+        let mut pmpaddr: usize = 0;
+        pmpaddr |= addr;
+        pmpaddr |= (size - 1) >> 3;
+
+        return pmpaddr;
+    }
+
+    #[inline]
+    fn decode_napot(bits: usize) -> (usize, usize) {
+        let mut pmpaddr: usize = bits;
+        //TODO: this will lose the high two bits if it was a 34 bit address
+        let address = pmpaddr;
+
+        // find first zero in pmpaddr
+        let mut range_mask = 1;
+        let mut size = 8;
+        while pmpaddr.get_bit(0) != false {
+            pmpaddr = pmpaddr >> 1;
+            range_mask = (range_mask << 1) | 0x1;
+            size = size << 1;
         }
 
-        #[inline]
-        fn encode_napot(addr: usize, size: usize) -> usize {
-            // See riscv priv spec "Physical Memory Protection CSRs
-            // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
-            // and
-            // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
-            // TODO: top bits will get lost on 64bit system
-            let addr = addr >> 2;
-
-            let mut pmpaddr: usize = 0;
-            pmpaddr |= addr;
-            pmpaddr |= (size - 1) >> 3;
-
-            return pmpaddr;
-        }
-
-        #[inline]
-        fn decode_napot(bits: usize) -> (usize, usize) {
-            let mut pmpaddr: usize = bits;
-            //TODO: this will lose the high two bits if it was a 34 bit address
-            let address = pmpaddr;
-
-            // find first zero in pmpaddr
-            let mut range_mask = 1;
-            let mut size = 8;
-            while pmpaddr.get_bit(0) != false {
-                pmpaddr = pmpaddr >> 1;
-                range_mask = (range_mask << 1) | 0x1;
-                size = size << 1;
-            }
-
-            let address = (address & !range_mask) << 2;
-            return (address, size);
-        }
+        let address = (address & !range_mask) << 2;
+        return (address, size);
+    }
 }
 
 impl From<usize> for PmpAddr {
     fn from(bits: usize) -> PmpAddr {
-        return PmpAddr {bits: bits};
+        return PmpAddr { bits: bits };
     }
 }
 
@@ -143,7 +143,6 @@ macro_rules! reg {
             pub fn read_napot() -> (usize, usize) {
                 unsafe { PmpAddr::decode_napot(_read()) }
             }
-
         }
     };
 }
@@ -295,8 +294,6 @@ pub unsafe fn write_napot_indexed(index: usize, addr: usize, size: usize) {
 pub unsafe fn write_na4_indexed(index: usize, addr: usize, size: usize) {
     write_napot_indexed(index, addr, size);
 }
-
-
 
 reg!(0x3b0, pmpaddr0);
 reg!(0x3b1, pmpaddr1);

@@ -12,8 +12,8 @@
 //!
 //! Ref: [RISC-V Platform-Level Interrupt Controller Specification](https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc)
 
-use core::option::Option;
 use core::num::NonZeroU16;
+use core::option::Option;
 
 use volatile_register::RW;
 
@@ -125,7 +125,9 @@ impl<const B: usize> Plic<B> {
     #[inline(always)]
     pub fn set_threshold(&mut self, context: usize, threshold: Priority<B>) {
         unsafe {
-        self.contexts[context].threshold.write(threshold.into_bits());
+            self.contexts[context]
+                .threshold
+                .write(threshold.into_bits());
         }
     }
 
@@ -200,7 +202,6 @@ impl<const B: usize> Priority<B> {
     }
 }
 
-
 /// 0x002000 - Enable bits for sources
 type Enables = [RW<u32>; 32];
 
@@ -216,8 +217,8 @@ struct Contexts {
 
 #[cfg(test)]
 mod tests {
-    use core::mem::size_of;
     use crate::plic::{Contexts, Enables, Plic};
+    use core::mem::size_of;
 
     #[test]
     fn sizeof_register_block() {

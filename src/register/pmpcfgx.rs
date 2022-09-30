@@ -315,8 +315,8 @@ pmpcfg!(0x3AF, pmpcfg15);
 
 #[cfg(test)]
 mod tests {
-    use core::mem::size_of;
     use crate::register::PmpCfg;
+    use core::mem::size_of;
 
     #[test]
     fn sizeof_pmpcfg() {
