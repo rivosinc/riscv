@@ -14,6 +14,7 @@
 //! - Wrappers around assembly instructions like `WFI`.
 
 #![no_std]
+#![feature(asm_const)]
 
 pub mod asm;
 //pub mod delay;
