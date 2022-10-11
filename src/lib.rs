@@ -16,8 +16,8 @@
 #![no_std]
 
 pub mod asm;
-pub mod delay;
-pub mod interrupt;
+//pub mod delay;
+//pub mod interrupt;
 pub mod register;
 
 #[macro_use]
