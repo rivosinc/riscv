@@ -204,7 +204,6 @@ pub const CSR_MEDELEG: u16 = 0x302;
 pub const CSR_MIDELEG: u16 = 0x303;
 #[allow(unused)]
 pub const CSR_MIE: u16 = 0x304;
-#[allow(unused)]
 pub const CSR_MTVEC: u16 = 0x305;
 #[allow(unused)]
 pub const CSR_MCOUNTEREN: u16 = 0x306;

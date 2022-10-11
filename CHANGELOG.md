@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Replaced CSR macros with new ones using `tock-registers`
 - Reimplemeted CSR modules using new base functions:
     - `mcause`
+    - `mtvec`
 
 ## [v0.9.0] - 2022-10-06
 

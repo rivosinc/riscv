@@ -70,7 +70,7 @@ mod addresses;
 //pub mod mie;
 //pub mod misa;
 //pub mod mstatus;
-//pub mod mtvec;
+pub mod mtvec;
 
 // Machine Trap Handling
 pub mod mcause;
