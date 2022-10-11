@@ -13,6 +13,8 @@
 #[macro_use]
 mod macros;
 
+mod addresses;
+
 // User Trap Setup
 //pub mod uie;
 //pub mod ustatus;
