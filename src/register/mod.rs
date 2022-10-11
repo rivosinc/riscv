@@ -73,7 +73,7 @@ mod addresses;
 //pub mod mtvec;
 
 // Machine Trap Handling
-//pub mod mcause;
+pub mod mcause;
 //pub mod mepc;
 //pub mod mip;
 //pub mod mscratch;

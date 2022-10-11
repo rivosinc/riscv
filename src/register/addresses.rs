@@ -216,7 +216,6 @@ pub const CSR_MCOUNTINHIBIT: u16 = 0x320;
 pub const CSR_MSCRATCH: u16 = 0x340;
 #[allow(unused)]
 pub const CSR_MEPC: u16 = 0x341;
-#[allow(unused)]
 pub const CSR_MCAUSE: u16 = 0x342;
 #[allow(unused)]
 pub const CSR_MTVAL: u16 = 0x343;

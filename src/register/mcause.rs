@@ -1,34 +1,75 @@
+// Copyright (c) 2022 by Rivos Inc.
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+
 //! mcause register
 
-/// mcause register
-#[derive(Clone, Copy, Debug)]
-pub struct Mcause {
-    bits: usize,
+ro_csr!(mcause, usize);
+
+register_bitfields![usize,
+    #[cfg(target_pointer_width = "32")]
+    pub mcause [
+        cause OFFSET(0) NUMBITS(31) [],
+        is_interrupt OFFSET(31) NUMBITS(1) [],
+    ],
+
+    #[cfg(target_pointer_width = "64")]
+    pub mcause [
+        cause OFFSET(0) NUMBITS(63) [],
+        is_interrupt OFFSET(63) NUMBITS(1) [],
+    ],
+];
+
+/// Get the cause of the latest interrupt
+#[inline]
+pub fn cause() -> Trap {
+    let cause: usize = read_field(mcause::cause);
+    if is_interrupt() {
+        Trap::Interrupt(Interrupt::from(cause))
+    } else {
+        Trap::Exception(Exception::from(cause))
+    }
 }
 
-/// Trap Cause
+/// Returns `true` if the last trap was caused by an interrupt, otherwise
+/// `false`.
+#[inline]
+pub fn is_interrupt() -> bool {
+    is_set(mcause::is_interrupt)
+}
+
+/// Returns `true` if the last trap was caused by an exception, otherwise
+/// `false`.
+#[inline]
+pub fn is_exception() -> bool {
+    !is_interrupt()
+}
+
+/// Enum wrapping both potential trap causes
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Trap {
     Interrupt(Interrupt),
     Exception(Exception),
 }
 
-/// Interrupt
+// TODO: Maybe add a feature that changes these enums to use the actual values,
+// and the conversion functions to use core::mem::transmute(). Assuming that
+// the target platform doesn't use the reserved or custom interrupt lines this
+// should be safe. This would only be worthwhile if the compiler doesn't already
+// optimize the conversions out.
+/// Interrupt causes
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Interrupt {
-    UserSoft,
     SupervisorSoft,
     MachineSoft,
-    UserTimer,
     SupervisorTimer,
     MachineTimer,
-    UserExternal,
     SupervisorExternal,
     MachineExternal,
     Unknown,
 }
 
-/// Exception
+/// Exception causes
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Exception {
     InstructionMisaligned,
@@ -52,13 +93,10 @@ impl Interrupt {
     #[inline]
     pub fn from(nr: usize) -> Self {
         match nr {
-            0 => Interrupt::UserSoft,
             1 => Interrupt::SupervisorSoft,
             3 => Interrupt::MachineSoft,
-            4 => Interrupt::UserTimer,
             5 => Interrupt::SupervisorTimer,
             7 => Interrupt::MachineTimer,
-            8 => Interrupt::UserExternal,
             9 => Interrupt::SupervisorExternal,
             11 => Interrupt::MachineExternal,
             _ => Interrupt::Unknown,
@@ -88,54 +126,3 @@ impl Exception {
         }
     }
 }
-impl Mcause {
-    /// Returns the contents of the register as raw bits
-    #[inline]
-    pub fn bits(&self) -> usize {
-        self.bits
-    }
-
-    /// Returns the code field
-    #[inline]
-    pub fn code(&self) -> usize {
-        match () {
-            #[cfg(target_pointer_width = "32")]
-            () => self.bits & !(1 << 31),
-            #[cfg(target_pointer_width = "64")]
-            () => self.bits & !(1 << 63),
-            #[cfg(target_pointer_width = "128")]
-            () => self.bits & !(1 << 127),
-        }
-    }
-
-    /// Trap Cause
-    #[inline]
-    pub fn cause(&self) -> Trap {
-        if self.is_interrupt() {
-            Trap::Interrupt(Interrupt::from(self.code()))
-        } else {
-            Trap::Exception(Exception::from(self.code()))
-        }
-    }
-
-    /// Is trap cause an interrupt.
-    #[inline]
-    pub fn is_interrupt(&self) -> bool {
-        match () {
-            #[cfg(target_pointer_width = "32")]
-            () => self.bits & (1 << 31) == 1 << 31,
-            #[cfg(target_pointer_width = "64")]
-            () => self.bits & (1 << 63) == 1 << 63,
-            #[cfg(target_pointer_width = "128")]
-            () => self.bits & (1 << 127) == 1 << 127,
-        }
-    }
-
-    /// Is trap cause an exception.
-    #[inline]
-    pub fn is_exception(&self) -> bool {
-        !self.is_interrupt()
-    }
-}
-
-read_csr_as!(Mcause, 0x342);
