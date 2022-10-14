@@ -1,0 +1,7 @@
+[toolchain]
+channel = "nightly"
+targets = [ "riscv32i-unknown-none-elf", "riscv32imc-unknown-none-elf",
+            "riscv32imac-unknown-none-elf", "riscv64imac-unknown-none-elf",
+            "riscv64gc-unknown-none-elf"]
+profile = "minimal"
+components = [ "rustfmt" ]
