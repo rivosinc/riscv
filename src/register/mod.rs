@@ -57,6 +57,10 @@ pub mod stval;
 // Supervisor Protection and Translation
 pub mod satp;
 
+// Supervisor Counter/Timers
+pub mod stimecmp;
+pub mod stimecmph;
+
 // Machine Information Registers
 pub mod marchid;
 pub mod mhartid;
