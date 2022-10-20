@@ -10,6 +10,7 @@
 //! - menvcfgh
 //! - minstreth
 //! - mhpmcounter<3-31>h
+//! - stimecmph
 
 #[macro_use]
 mod macros;
@@ -53,6 +54,8 @@ pub mod sepc;
 pub mod sip;
 pub mod sscratch;
 pub mod stval;
+pub mod stimecmp;
+pub mod stimecmph;
 
 // Supervisor Protection and Translation
 pub mod satp;
