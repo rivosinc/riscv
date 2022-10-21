@@ -1,4 +1,4 @@
-//! time register
+//! stimpcmp register
 
 read_csr_as_usize!(0x14D);
 write_csr_as_usize!(0x14D);
