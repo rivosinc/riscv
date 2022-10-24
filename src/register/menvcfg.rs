@@ -32,7 +32,7 @@ impl Menvcfg {
 
     /// Cache Block Invalidate instruction Enable
     #[inline]
-    pub fn mpp(&self) -> CBIE {
+    pub fn cbie(&self) -> CBIE {
         match self.bits.get_bits(4..5) {
             0b00 => CBIE::IllegalInstruction,
             0b01 => CBIE::ExecutedFlush,
