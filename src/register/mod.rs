@@ -7,6 +7,7 @@
 //! - instreth
 //! - hpmcounter<3-31>h
 //! - mcycleh
+//! - menvcfgh
 //! - minstreth
 //! - mhpmcounter<3-31>h
 
@@ -81,6 +82,10 @@ pub mod mepc;
 pub mod mip;
 pub mod mscratch;
 pub mod mtval;
+
+// Machine Configuration
+pub mod menvcfg;
+pub mod menvcfgh;
 
 // Machine Protection and Translation
 mod pmpcfgx;
