@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Disabled all CSR modules (`register::*`) (breaking change)
+- Replaced CSR macros with new ones using `tock-registers`
+- Reimplemeted CSR modules using new base functions:
+    - `mcause`
+    - `mtvec`
 
 ## [v0.9.0] - 2022-10-06
 

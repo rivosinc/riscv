@@ -1,50 +1,62 @@
+// Copyright (c) 2022 by Rivos Inc.
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+
 //! mtvec register
 
-/// mtvec register
-#[derive(Clone, Copy, Debug)]
-pub struct Mtvec {
-    bits: usize,
-}
+rw_csr!(mtvec, usize);
 
-/// Trap mode
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum TrapMode {
-    Direct = 0,
-    Vectored = 1,
-}
+register_bitfields![usize,
+    #[cfg(target_pointer_width = "32")]
+    pub mtvec [
+        mode OFFSET(0) NUMBITS(2) [
+            Direct = 0,
+            Vectored = 1,
+       ],
+        base OFFSET(2) NUMBITS(30) [],
+    ],
+    #[cfg(target_pointer_width = "64")]
+    pub mtvec [
+        mode OFFSET(0) NUMBITS(2) [
+            Direct = 0,
+            Vectored = 1,
+       ],
+        base OFFSET(2) NUMBITS(62) [],
+    ],
+];
 
-impl Mtvec {
-    /// Returns the contents of the register as raw bits
-    #[inline]
-    pub fn bits(&self) -> usize {
-        self.bits
-    }
-
-    /// Returns the trap-vector base-address
-    #[inline]
-    pub fn address(&self) -> usize {
-        self.bits - (self.bits & 0b11)
-    }
-
-    /// Returns the trap-vector mode
-    #[inline]
-    pub fn trap_mode(&self) -> Option<TrapMode> {
-        let mode = self.bits & 0b11;
-        match mode {
-            0 => Some(TrapMode::Direct),
-            1 => Some(TrapMode::Vectored),
-            _ => None,
-        }
-    }
-}
-
-read_csr_as!(Mtvec, 0x305);
-
-write_csr!(0x305);
-
-/// Writes the CSR
+/// Returns true if the trap vector mode is set to `Direct`.
 #[inline]
-pub unsafe fn write(addr: usize, mode: TrapMode) {
-    let bits = addr + mode as usize;
-    _write(bits);
+pub fn is_direct() -> bool {
+    read_field(mode) == 0x0
+}
+
+/// Returns true if the trap vector mode is set to `Vectored`.
+#[inline]
+pub fn is_vectored() -> bool {
+    read_field(mode) == 0x1
+}
+
+/// Sets the trap vector mode to `Direct`.
+#[inline]
+pub fn set_direct() {
+    let mut local = read_local();
+    local.write(mode::Direct);
+    write_local(local);
+}
+
+/// Sets the trap vector mode to `Vectored`.
+#[inline]
+pub fn set_vectored() {
+    let mut local = read_local();
+    local.write(mode::Vectored);
+    write_local(local);
+}
+
+/// Sets the trap vector base.
+#[inline]
+pub fn set_base(base_val: usize) {
+    let mut local = read_local();
+    local.write(base.val(base_val));
+    write_local(local);
 }
