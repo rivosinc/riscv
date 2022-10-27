@@ -1,6 +1,6 @@
 [package]
 name = "riscv"
-version = "0.8.1"
+version = "0.9.0"
 edition = "2021"
 rust-version = "1.59"
 repository = "https://github.com/rust-embedded/riscv"
@@ -17,8 +17,11 @@ targets = [
     "riscv64imac-unknown-none-elf", "riscv64gc-unknown-none-elf",
 ]
 
+[features]
+critical-section-single-hart = ["critical-section/restore-state-bool"]
+
 [dependencies]
-bare-metal = "1.0.0"
 bit_field = "0.10.0"
+critical-section = "1.1.0"
 embedded-hal = "0.2.6"
 volatile-register = "0.2"
