@@ -27,12 +27,11 @@
 
 #![no_std]
 
-pub mod aplic;
 pub mod asm;
 pub mod delay;
 pub mod interrupt;
-pub mod plic;
 pub mod peripheral;
+pub mod plic;
 pub mod register;
 
 #[macro_use]
