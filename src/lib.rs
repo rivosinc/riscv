@@ -27,6 +27,7 @@
 
 #![no_std]
 
+pub mod aplic;
 pub mod asm;
 pub mod delay;
 pub mod interrupt;
