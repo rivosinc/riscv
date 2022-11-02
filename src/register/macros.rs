@@ -134,6 +134,31 @@ macro_rules! write_csr_as_usize_rv32 {
     };
 }
 
+macro_rules! claim_csr_as {
+    ($register:ident, $csr_number:literal) => {
+        /// Claim and return the highest-priority interrupt pending on this hart
+        /// # Safety
+        /// This function mutates system state by claiming a pending interrupt.
+        /// The caller must handle this interrupt otherwise it will be lost.
+        pub unsafe fn claim() -> $register {
+            match () {
+                #[cfg(riscv)]
+                () => {
+                    let r: usize;
+                    core::arch::asm!(concat!(
+                            "csrrw {0}, ", stringify!($csr_number), ", x0"),
+                            out(reg) r);
+
+                    $register { bits: r }
+                }
+
+                #[cfg(not(riscv))]
+                () => unimplemented!(),
+            }
+        }
+    };
+}
+
 macro_rules! set {
     ($csr_number:literal) => {
         /// Set the CSR
