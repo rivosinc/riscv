@@ -61,6 +61,9 @@ pub mod satp;
 pub mod stimecmp;
 pub mod stimecmph;
 
+// Supervisor-Level Interrupts
+pub mod stopei;
+
 // Machine Information Registers
 pub mod marchid;
 pub mod mhartid;
@@ -82,6 +85,9 @@ pub mod mepc;
 pub mod mip;
 pub mod mscratch;
 pub mod mtval;
+
+// Machine-Level Interrupts
+pub mod mtopei;
 
 // Machine Configuration
 pub mod menvcfg;
