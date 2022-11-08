@@ -62,6 +62,8 @@ pub mod stimecmp;
 pub mod stimecmph;
 
 // Supervisor-Level Interrupts
+pub mod sireg;
+pub mod siselect;
 pub mod stopei;
 
 // Machine Information Registers
