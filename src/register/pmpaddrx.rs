@@ -27,30 +27,51 @@ impl PmpAddr {
     }
 
     #[inline]
-    pub fn encode(&mut self, mode: Mode, addr: Addr, size: Option<NonZeroSize>) {
+    pub fn encode(&mut self, mode: Mode, addr: Addr, size: Option<NonZeroSize>) -> Result<(), ()> {
         self.bits = match mode {
             Mode::OFF => 0,
-            Mode::TOR => (addr >> 2).try_into().unwrap(),
-            Mode::NA4 => (addr >> 2).try_into().unwrap(),
-            Mode::NAPOT => Self::encode_napot(addr, size.unwrap().into()),
-        }
+            Mode::TOR => {
+                let addr_small: usize = (addr >> 2) as usize;
+                if (addr_small as u64) << 2 != addr {
+                    return Err(());
+                }
+                (addr >> 2).try_into().unwrap()
+            }
+            Mode::NA4 => {
+                let addr_small: usize = (addr >> 2) as usize;
+                if (addr_small as u64) << 2 != addr {
+                    return Err(());
+                }
+                (addr >> 2).try_into().unwrap()
+            }
+            Mode::NAPOT => Self::encode_napot(addr, size.unwrap().into())?,
+        };
+        Ok(())
     }
 
     #[inline]
-    fn encode_napot(addr: Addr, size: Size) -> usize {
+    fn encode_napot(addr: Addr, size: Size) -> Result<usize, ()> {
+        // verify size is not too big
+        if (((size - 1) >> 3) > usize::MAX as Size) ||
+            // check size is a power of 2
+            (size == (size & !(size-1))) ||
+            // checks that the low bits where size is placed, are already zero
+            (addr & ((size - 1) >> 3) != 0)
+        {
+            return Err(());
+        }
         // See riscv priv spec "Physical Memory Protection CSRs
         // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
         // and
         // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
-        let addr: usize = (addr >> 2).try_into().unwrap();
+        let addr: usize = (addr >> 2) as usize;
 
         let mut pmpaddr: usize = 0;
         pmpaddr |= addr;
         // verify the provided size is valid
-        assert!(((size - 1) >> 3) <= usize::MAX as Size);
         pmpaddr |= ((size - 1) >> 3) as usize;
 
-        return pmpaddr;
+        return Ok(pmpaddr);
     }
 
     #[inline]
@@ -142,7 +163,7 @@ macro_rules! reg {
 
             #[inline]
             pub unsafe fn write_napot(addr: Addr, size: Size) {
-                _write(PmpAddr::encode_napot(addr, size));
+                _write(PmpAddr::encode_napot(addr, size).unwrap());
             }
 
             #[inline]
