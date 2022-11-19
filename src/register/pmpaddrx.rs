@@ -18,7 +18,7 @@ impl PmpAddr {
         match mode {
             Mode::OFF => (big_bits, None),
             Mode::TOR => (big_bits << 2, None),
-            Mode::NA4 => (big_bits << 2, None),
+            Mode::NA4 => (big_bits << 2, Some(4.try_into().unwrap())),
             Mode::NAPOT => {
                 let (addr, size) = Self::decode_napot(self.bits);
                 (addr, Some(size.try_into().unwrap()))
