@@ -13,15 +13,15 @@ pub type Addr = u64;
 
 impl PmpAddr {
     #[inline]
-    pub fn decode(&self, mode: Mode) -> (Addr, Option<NonZeroSize>) {
+    pub fn decode(&self, mode: Mode) -> (Option<Addr>, Option<NonZeroSize>) {
         let big_bits: Addr = self.bits as Addr;
         match mode {
-            Mode::OFF => (big_bits, None),
-            Mode::TOR => (big_bits << 2, None),
-            Mode::NA4 => (big_bits << 2, Some(4.try_into().unwrap())),
+            Mode::OFF => (None, None),
+            Mode::TOR => (Some(big_bits << 2), None),
+            Mode::NA4 => (Some(big_bits << 2), Some(4.try_into().unwrap())),
             Mode::NAPOT => {
                 let (addr, size) = Self::decode_napot(self.bits);
-                (addr, Some(size.try_into().unwrap()))
+                (Some(addr), Some(size.try_into().unwrap()))
             }
         }
     }
