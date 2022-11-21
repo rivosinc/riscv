@@ -32,6 +32,8 @@ impl PmpAddr {
             Mode::OFF => 0,
             Mode::TOR => {
                 let addr_small: usize = (addr >> 2) as usize;
+                // this check both ensures the bottom two bits are zero and that the (addr >> 2)
+                // was not truncated by the casting
                 if (addr_small as u64) << 2 != addr {
                     return Err(());
                 }
@@ -51,12 +53,15 @@ impl PmpAddr {
 
     #[inline]
     fn encode_napot(addr: Addr, size: Size) -> Result<usize, ()> {
+        // the size is related to the number of sequential ones in the low bits
+        let encoded_size: Size = (size - 1) >> 3;
+
         // verify size is not too big
-        if (((size - 1) >> 3) > usize::MAX as Size) ||
+        if (encoded_size > usize::MAX as Size) ||
             // check size is a power of 2
             (size == (size & !(size-1))) ||
             // checks that the low bits where size is placed, are already zero
-            (addr & ((size - 1) >> 3) != 0)
+            (addr & encoded_size != 0)
         {
             return Err(());
         }
@@ -69,7 +74,7 @@ impl PmpAddr {
         let mut pmpaddr: usize = 0;
         pmpaddr |= addr;
         // verify the provided size is valid
-        pmpaddr |= ((size - 1) >> 3) as usize;
+        pmpaddr |= encoded_size as usize;
 
         return Ok(pmpaddr);
     }
