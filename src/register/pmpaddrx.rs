@@ -1,68 +1,100 @@
 use crate::register::pmpcfgx::Mode;
 use bit_field::BitField;
-use core::num::NonZeroUsize;
+use core::num::NonZeroU64;
 
 #[derive(Copy, Clone, Debug)]
 pub struct PmpAddr {
     bits: usize,
 }
 
+pub type Size = u64;
+pub type NonZeroSize = NonZeroU64;
+pub type Addr = u64;
+
 impl PmpAddr {
     #[inline]
-    pub fn decode(&self, mode: Mode) -> (usize, Option<NonZeroUsize>) {
+    pub fn decode(&self, mode: Mode) -> (Option<Addr>, Option<NonZeroSize>) {
+        let big_bits: Addr = self.bits as Addr;
         match mode {
-            Mode::OFF => (self.bits, None),
-            Mode::TOR => (self.bits << 2, None),
-            Mode::NA4 => (self.bits << 2, None),
+            Mode::OFF => (None, None),
+            Mode::TOR => (Some(big_bits << 2), None),
+            Mode::NA4 => (Some(big_bits << 2), Some(4.try_into().unwrap())),
             Mode::NAPOT => {
                 let (addr, size) = Self::decode_napot(self.bits);
-                (addr, Some(size.try_into().unwrap()))
+                (Some(addr), Some(size.try_into().unwrap()))
             }
         }
     }
 
     #[inline]
-    pub fn encode(&mut self, mode: Mode, addr: usize, size: Option<NonZeroUsize>) {
+    pub fn encode(&mut self, mode: Mode, addr: Addr, size: Option<NonZeroSize>) -> Result<(), ()> {
         self.bits = match mode {
             Mode::OFF => 0,
-            Mode::TOR => addr >> 2,
-            Mode::NA4 => addr >> 2,
-            Mode::NAPOT => Self::encode_napot(addr, size.unwrap().into()),
-        }
+            Mode::TOR => {
+                let addr_small: usize = (addr >> 2) as usize;
+                // this check both ensures the bottom two bits are zero and that the (addr >> 2)
+                // was not truncated by the casting
+                if (addr_small as u64) << 2 != addr {
+                    return Err(());
+                }
+                (addr >> 2).try_into().unwrap()
+            }
+            Mode::NA4 => {
+                let addr_small: usize = (addr >> 2) as usize;
+                if (addr_small as u64) << 2 != addr {
+                    return Err(());
+                }
+                (addr >> 2).try_into().unwrap()
+            }
+            Mode::NAPOT => Self::encode_napot(addr, size.unwrap().into())?,
+        };
+        Ok(())
     }
 
     #[inline]
-    fn encode_napot(addr: usize, size: usize) -> usize {
+    fn encode_napot(addr: Addr, size: Size) -> Result<usize, ()> {
+        // the size is related to the number of sequential ones in the low bits
+        let encoded_size: Size = (size - 1) >> 3;
+
+        // verify size is not too big
+        if (encoded_size > usize::MAX as Size) ||
+            // check size is a power of 2
+            (size == (size & !(size-1))) ||
+            // checks that the low bits where size is placed, are already zero
+            (addr & encoded_size != 0)
+        {
+            return Err(());
+        }
         // See riscv priv spec "Physical Memory Protection CSRs
         // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
         // and
         // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
-        // TODO: top bits will get lost on 64bit system
-        let addr = addr >> 2;
+        let addr: usize = (addr >> 2) as usize;
 
         let mut pmpaddr: usize = 0;
         pmpaddr |= addr;
-        pmpaddr |= (size - 1) >> 3;
+        // verify the provided size is valid
+        pmpaddr |= encoded_size as usize;
 
-        return pmpaddr;
+        return Ok(pmpaddr);
     }
 
     #[inline]
-    fn decode_napot(bits: usize) -> (usize, usize) {
+    fn decode_napot(bits: usize) -> (Addr, Size) {
         let mut pmpaddr: usize = bits;
         //TODO: this will lose the high two bits if it was a 34 bit address
         let address = pmpaddr;
 
         // find first zero in pmpaddr
         let mut range_mask = 1;
-        let mut size = 8;
+        let mut size: Size = 8;
         while pmpaddr.get_bit(0) != false {
             pmpaddr = pmpaddr >> 1;
             range_mask = (range_mask << 1) | 0x1;
             size = size << 1;
         }
 
-        let address = (address & !range_mask) << 2;
+        let address = ((address & !range_mask) as Addr) << 2;
         return (address, size);
     }
 }
@@ -79,7 +111,7 @@ macro_rules! reg {
     ) => {
         /// Physical memory protection address register
         pub mod $csr {
-            use super::PmpAddr;
+            use super::{Addr, PmpAddr, Size};
 
             read_csr!($addr);
             write_csr!($addr);
@@ -95,60 +127,60 @@ macro_rules! reg {
             }
 
             #[inline]
-            pub fn read_tor() -> usize {
+            pub fn read_tor() -> Addr {
                 // See riscv priv spec "Physical Memory Protection CSRs
                 // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
                 // and
                 // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
                 unsafe {
-                    return _read() << 2;
+                    return (_read() as Addr) << 2;
                 }
             }
             #[inline]
-            pub unsafe fn write_tor(addr: usize) {
+            pub unsafe fn write_tor(addr: Addr) {
                 // See riscv priv spec "Physical Memory Protection CSRs
                 // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
                 // and
                 // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
                 let addr = addr >> 2;
-                _write(addr);
+                _write(addr.try_into().unwrap());
             }
 
             #[inline]
-            pub fn read_na4() -> usize {
+            pub fn read_na4() -> Addr {
                 // See riscv priv spec "Physical Memory Protection CSRs
                 // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
                 // and
                 // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
                 unsafe {
-                    return _read() << 2;
+                    return (_read() as Addr) << 2;
                 }
             }
             #[inline]
-            pub unsafe fn write_na4(addr: usize) {
+            pub unsafe fn write_na4(addr: Addr) {
                 // See riscv priv spec "Physical Memory Protection CSRs
                 // "Each PMP address register encodes bits 33–2 of a 34-bit physical address for RV32"
                 // and
                 // "For RV64, each PMP address register encodes bits 55–2 of a 56-bit physical address"
                 let addr = addr >> 2;
-                _write(addr);
+                _write(addr.try_into().unwrap());
             }
 
             #[inline]
-            pub unsafe fn write_napot(addr: usize, size: usize) {
-                _write(PmpAddr::encode_napot(addr, size));
+            pub unsafe fn write_napot(addr: Addr, size: Size) {
+                _write(PmpAddr::encode_napot(addr, size).unwrap());
             }
 
             #[inline]
-            pub fn read_napot() -> (usize, usize) {
+            pub fn read_napot() -> (Addr, Size) {
                 unsafe { PmpAddr::decode_napot(_read()) }
             }
         }
     };
 }
 
-pub unsafe fn write_tor_indexed(index: usize, addr: usize) {
-    assert!(index <= 64);
+pub unsafe fn write_tor_indexed(index: usize, addr: Addr) {
+    assert!(index < 64);
 
     match index {
         0 => pmpaddr0::write_tor(addr),
@@ -219,8 +251,8 @@ pub unsafe fn write_tor_indexed(index: usize, addr: usize) {
     }
 }
 
-pub unsafe fn write_napot_indexed(index: usize, addr: usize, size: usize) {
-    assert!(index <= 64);
+pub unsafe fn write_napot_indexed(index: usize, addr: Addr, size: Size) {
+    assert!(index < 64);
 
     match index {
         0 => pmpaddr0::write_napot(addr, size),
@@ -291,7 +323,7 @@ pub unsafe fn write_napot_indexed(index: usize, addr: usize, size: usize) {
     }
 }
 
-pub unsafe fn write_na4_indexed(index: usize, addr: usize, size: usize) {
+pub unsafe fn write_na4_indexed(index: usize, addr: Addr, size: Size) {
     write_napot_indexed(index, addr, size);
 }
 
