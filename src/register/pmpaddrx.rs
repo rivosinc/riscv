@@ -1,15 +1,26 @@
 use crate::register::pmpcfgx::Mode;
 use bit_field::BitField;
-use core::num::NonZeroU64;
+use core::num::{NonZeroU128, NonZeroU64};
 
 #[derive(Copy, Clone, Debug)]
 pub struct PmpAddr {
     bits: usize,
 }
 
+#[cfg(target_pointer_width = "32")]
 pub type Size = u64;
+#[cfg(target_pointer_width = "64")]
+pub type Size = u128;
+
+#[cfg(target_pointer_width = "32")]
 pub type NonZeroSize = NonZeroU64;
+#[cfg(target_pointer_width = "64")]
+pub type NonZeroSize = NonZeroU128;
+
+#[cfg(target_pointer_width = "32")]
 pub type Addr = u64;
+#[cfg(target_pointer_width = "64")]
+pub type Addr = u128;
 
 impl PmpAddr {
     #[inline]
@@ -34,14 +45,14 @@ impl PmpAddr {
                 let addr_small: usize = (addr >> 2) as usize;
                 // this check both ensures the bottom two bits are zero and that the (addr >> 2)
                 // was not truncated by the casting
-                if (addr_small as u64) << 2 != addr {
+                if (addr_small as Addr) << 2 != addr {
                     return Err(());
                 }
                 (addr >> 2).try_into().unwrap()
             }
             Mode::NA4 => {
                 let addr_small: usize = (addr >> 2) as usize;
-                if (addr_small as u64) << 2 != addr {
+                if (addr_small as Addr) << 2 != addr {
                     return Err(());
                 }
                 (addr >> 2).try_into().unwrap()
