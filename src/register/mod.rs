@@ -101,6 +101,9 @@ pub use self::pmpcfgx::*;
 mod pmpaddrx;
 pub use self::pmpaddrx::*;
 
+// epmp configuration register
+pub mod mseccfg;
+
 // Machine Counter/Timers
 pub mod mcycle;
 pub mod mcycleh;
