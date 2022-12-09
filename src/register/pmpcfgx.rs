@@ -136,7 +136,19 @@ macro_rules! set_pmpcfg {
         }
     };
 }
-
+macro_rules! get_pmpcfg {
+    () => {
+        /// Get the pmp configuration corresponding to the index
+        #[inline]
+        pub fn get(index: usize) -> PmpCfg {
+            // safety: reading a pmpcfg has no side effects
+            let value = unsafe { _read() };
+            PmpCfg {
+                byte: value.get_bits(8 * index..=8 * index + 7) as u8,
+            }
+        }
+    };
+}
 macro_rules! clear_pmpcfg {
     () => {
         /// Clear the pmp configuration corresponding to the index
@@ -176,6 +188,33 @@ pub unsafe fn set_cfg_entry(index: usize, cfg: PmpCfg) {
     }
 }
 
+#[cfg(riscv32)]
+pub fn get_cfg_entry(index: usize) -> PmpCfg {
+    assert!(index < 64);
+
+    let cfg_idx = index % 4;
+
+    match index / 4 {
+        0 => pmpcfg0::get(cfg_idx),
+        1 => pmpcfg1::get(cfg_idx),
+        2 => pmpcfg2::get(cfg_idx),
+        3 => pmpcfg3::get(cfg_idx),
+        4 => pmpcfg4::get(cfg_idx),
+        5 => pmpcfg5::get(cfg_idx),
+        6 => pmpcfg6::get(cfg_idx),
+        7 => pmpcfg7::get(cfg_idx),
+        8 => pmpcfg8::get(cfg_idx),
+        9 => pmpcfg9::get(cfg_idx),
+        10 => pmpcfg10::get(cfg_idx),
+        11 => pmpcfg11::get(cfg_idx),
+        12 => pmpcfg12::get(cfg_idx),
+        13 => pmpcfg13::get(cfg_idx),
+        14 => pmpcfg14::get(cfg_idx),
+        15 => pmpcfg15::get(cfg_idx),
+        _ => unreachable!(),
+    }
+}
+
 #[cfg(riscv64)]
 pub unsafe fn set_cfg_entry(index: usize, cfg: PmpCfg) {
     assert!(index < 64);
@@ -193,6 +232,24 @@ pub unsafe fn set_cfg_entry(index: usize, cfg: PmpCfg) {
         5 => pmpcfg10::set(cfg_idx, cfg),
         6 => pmpcfg12::set(cfg_idx, cfg),
         7 => pmpcfg14::set(cfg_idx, cfg),
+        _ => unreachable!(),
+    }
+}
+#[cfg(riscv64)]
+pub fn get_cfg_entry(index: usize) -> PmpCfg {
+    assert!(index < 64);
+
+    let cfg_idx = index % 4;
+
+    match index / 4 {
+        0 => pmpcfg0::get(cfg_idx),
+        1 => pmpcfg2::get(cfg_idx),
+        2 => pmpcfg4::get(cfg_idx),
+        3 => pmpcfg6::get(cfg_idx),
+        4 => pmpcfg8::get(cfg_idx),
+        5 => pmpcfg10::get(cfg_idx),
+        6 => pmpcfg12::get(cfg_idx),
+        7 => pmpcfg14::get(cfg_idx),
         _ => unreachable!(),
     }
 }
@@ -222,6 +279,31 @@ pub unsafe fn set_cfg_csr(reg: usize, val: PmpCfgCsr) {
     }
 }
 
+#[cfg(riscv32)]
+pub fn get_cfg_csr(reg: usize) -> PmpCfgCsr {
+    assert!(reg < 16);
+
+    match reg {
+        0 => pmpcfg0::read(),
+        1 => pmpcfg1::read(),
+        2 => pmpcfg2::read(),
+        3 => pmpcfg3::read(),
+        4 => pmpcfg4::read(),
+        5 => pmpcfg5::read(),
+        6 => pmpcfg6::read(),
+        7 => pmpcfg7::read(),
+        8 => pmpcfg8::read(),
+        9 => pmpcfg9::read(),
+        10 => pmpcfg10::read(),
+        11 => pmpcfg11::read(),
+        12 => pmpcfg12::read(),
+        13 => pmpcfg13::read(),
+        14 => pmpcfg14::read(),
+        15 => pmpcfg15::read(),
+        _ => unreachable!(),
+    }
+}
+
 #[cfg(riscv64)]
 pub unsafe fn set_cfg_csr(reg: usize, val: PmpCfgCsr) {
     assert!(reg < 16);
@@ -236,6 +318,24 @@ pub unsafe fn set_cfg_csr(reg: usize, val: PmpCfgCsr) {
         10 => pmpcfg10::write(val),
         12 => pmpcfg12::write(val),
         14 => pmpcfg14::write(val),
+        _ => unreachable!(),
+    }
+}
+
+#[cfg(riscv64)]
+pub fn get_cfg_csr(reg: usize) -> PmpCfgCsr {
+    assert!(reg < 16);
+    assert!(reg % 2 == 0);
+
+    match reg {
+        0 => pmpcfg0::read(),
+        2 => pmpcfg2::read(),
+        4 => pmpcfg4::read(),
+        6 => pmpcfg6::read(),
+        8 => pmpcfg8::read(),
+        10 => pmpcfg10::read(),
+        12 => pmpcfg12::read(),
+        14 => pmpcfg14::read(),
         _ => unreachable!(),
     }
 }
@@ -268,6 +368,7 @@ macro_rules! pmpcfg {
             }
 
             set_pmpcfg!();
+            get_pmpcfg!();
             clear_pmpcfg!();
         }
     };
