@@ -66,30 +66,10 @@ impl PmpCfg {
 
 pub struct PmpCfgCsr {
     #[cfg(riscv32)]
-    cfgs: [PmpCfg; 4],
+    pub cfgs: [PmpCfg; 4],
 
     #[cfg(riscv64)]
-    cfgs: [PmpCfg; 8],
-}
-
-impl PmpCfgCsr {
-    pub fn get_cfg(&self, index: usize) -> PmpCfg {
-        #[cfg(riscv32)]
-        {
-            return self.cfgs[index];
-        }
-
-        #[cfg(riscv64)]
-        {
-            return self.cfgs[index];
-        }
-
-        #[cfg(not(any(riscv32, riscv64)))]
-        {
-            _ = index;
-            return PmpCfg { byte: 0 };
-        }
-    }
+    pub cfgs: [PmpCfg; 8],
 }
 
 impl From<usize> for PmpCfgCsr {
