@@ -52,14 +52,14 @@ impl PmpAddr {
     }
 
     #[inline]
-    fn encode_napot(addr: Addr, size: Size) -> Result<usize, ()> {
+    pub fn encode_napot(addr: Addr, size: Size) -> Result<usize, ()> {
         // the size is related to the number of sequential ones in the low bits
         let encoded_size: Size = (size - 1) >> 3;
 
         // verify size is not too big
         if (encoded_size > usize::MAX as Size) ||
             // check size is a power of 2
-            (size == (size & !(size-1))) ||
+            ((size & (size-1)) != 0) ||
             // checks that the low bits where size is placed, are already zero
             (addr & encoded_size != 0)
         {
@@ -80,7 +80,7 @@ impl PmpAddr {
     }
 
     #[inline]
-    fn decode_napot(bits: usize) -> (Addr, Size) {
+    pub fn decode_napot(bits: usize) -> (Addr, Size) {
         let mut pmpaddr: usize = bits;
         //TODO: this will lose the high two bits if it was a 34 bit address
         let address = pmpaddr;
