@@ -2,7 +2,7 @@ use crate::register::pmpcfgx::Mode;
 use bit_field::BitField;
 use core::num::NonZeroU64;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct PmpAddr {
     bits: usize,
 }

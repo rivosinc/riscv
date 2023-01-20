@@ -5,7 +5,7 @@ use core::convert::From;
 
 /// Permission enum contains all possible permission modes for pmp registers
 /// NOTE: All encodings where R = 0 and W = 1 are reserved
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Permission {
     NONE = 0b000,
     R = 0b001,
@@ -18,7 +18,7 @@ pub enum Permission {
 }
 
 /// Mode enum contains all possible addressing modes for pmp registers
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Mode {
     OFF = 0b00,
     TOR = 0b01,
@@ -27,7 +27,7 @@ pub enum Mode {
 }
 
 /// PmpCfg struct holds a high-level representation of a single pmp configuration
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PmpCfg {
     pub byte: u8,
 }
