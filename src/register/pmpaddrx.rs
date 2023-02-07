@@ -61,7 +61,7 @@ impl PmpAddr {
             // check size is a power of 2
             ((size & (size-1)) != 0) ||
             // checks that the low bits where size is placed, are already zero
-            (addr & encoded_size != 0)
+            ((addr >> 2) & (encoded_size << 1) + 1 != 0)
         {
             return Err(());
         }
