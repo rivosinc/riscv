@@ -89,6 +89,8 @@ pub mod mscratch;
 pub mod mtval;
 
 // Machine-Level Interrupts
+pub mod mireg;
+pub mod miselect;
 pub mod mtopei;
 
 // Machine Configuration
