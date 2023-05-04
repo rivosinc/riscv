@@ -33,7 +33,7 @@ impl Menvcfg {
     /// Cache Block Invalidate instruction Enable
     #[inline]
     pub fn mpp(&self) -> CBIE {
-        match self.bits.get_bits(4..5) {
+        match self.bits.get_bits(4..6) {
             0b00 => CBIE::IllegalInstruction,
             0b01 => CBIE::ExecutedFlush,
             0b10 => CBIE::Reserved,
@@ -83,17 +83,17 @@ set_clear_csr!(
 #[inline]
 pub unsafe fn set_cbie(cbie: CBIE) {
     let mut value = _read();
-    value.set_bits(4..5, cbie as usize);
+    value.set_bits(4..6, cbie as usize);
     _write(value);
 }
 
 set_clear_csr!(
     /// Cache Block Clean and Flush instruction Enable
-    , set_cbcfe, clear_cbcfe, 6 << 0);
+    , set_cbcfe, clear_cbcfe, 1 << 6);
 
 set_clear_csr!(
     /// Cache Block Zero instruction Enable
-    , set_cbze, clear_cbze, 7 << 0);
+    , set_cbze, clear_cbze, 1 << 7);
 
 #[cfg(riscv64)]
 set_clear_csr!(
