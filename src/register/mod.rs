@@ -118,6 +118,8 @@ pub mod minstreth;
 mod mhpmeventx;
 pub use self::mhpmeventx::*;
 
+pub mod mstateen0;
+
 // TODO: Debug/Trace Registers (shared with Debug Mode)
 
 // TODO: Debug Mode Registers
