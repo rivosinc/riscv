@@ -54,6 +54,20 @@ impl Menvcfg {
         self.bits.get_bit(7)
     }
 
+    /// Counter Delegation Enable (enabled by Smcdeleg extension)
+    #[cfg(riscv64)]
+    #[inline]
+    pub fn cde(&self) -> bool {
+        self.bits.get_bit(60)
+    }
+
+    /// A/D Update Enabled (enabled by Svadu extension)
+    #[cfg(riscv64)]
+    #[inline]
+    pub fn adue(&self) -> bool {
+        self.bits.get_bit(61)
+    }
+
     /// PBMTE controls whether the Svpbmt extension is available for use in S-mode and G-stage
     /// address translation
     #[cfg(riscv64)]
@@ -94,6 +108,16 @@ set_clear_csr!(
 set_clear_csr!(
     /// Cache Block Zero instruction Enable
     , set_cbze, clear_cbze, 1 << 7);
+
+#[cfg(riscv64)]
+set_clear_csr!(
+    /// Counter Delegation Enable (enabled by Smcdeleg extension)
+    , set_cde, clear_cde, 1 << 60);
+
+#[cfg(riscv64)]
+set_clear_csr!(
+    /// A/D Update Enabled (enabled by Svadu extension)
+    , set_adue, clear_adue, 1 << 61);
 
 #[cfg(riscv64)]
 set_clear_csr!(
