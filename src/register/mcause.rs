@@ -16,35 +16,34 @@ pub enum Trap {
 /// Interrupt
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Interrupt {
-    UserSoft,
-    SupervisorSoft,
-    MachineSoft,
-    UserTimer,
-    SupervisorTimer,
-    MachineTimer,
-    UserExternal,
-    SupervisorExternal,
-    MachineExternal,
+    SupervisorSoft = 1,
+    MachineSoft = 3,
+    SupervisorTimer = 5,
+    MachineTimer = 7,
+    SupervisorExternal = 9,
+    MachineExternal = 11,
     Unknown,
 }
 
 /// Exception
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Exception {
-    InstructionMisaligned,
-    InstructionFault,
-    IllegalInstruction,
-    Breakpoint,
-    LoadMisaligned,
-    LoadFault,
-    StoreMisaligned,
-    StoreFault,
-    UserEnvCall,
-    SupervisorEnvCall,
-    MachineEnvCall,
-    InstructionPageFault,
-    LoadPageFault,
-    StorePageFault,
+    InstructionMisaligned = 0,
+    InstructionFault = 1,
+    IllegalInstruction = 2,
+    Breakpoint = 3,
+    LoadMisaligned = 4,
+    LoadFault = 5,
+    StoreMisaligned = 6,
+    StoreFault = 7,
+    UserEnvCall = 8,
+    SupervisorEnvCall = 9,
+    MachineEnvCall = 11,
+    InstructionPageFault = 12,
+    LoadPageFault = 13,
+    StorePageFault = 15,
+    SoftwareCheck = 18,
+    HardwareError = 19, 
     Unknown,
 }
 
@@ -52,13 +51,10 @@ impl Interrupt {
     #[inline]
     pub fn from(nr: usize) -> Self {
         match nr {
-            0 => Interrupt::UserSoft,
             1 => Interrupt::SupervisorSoft,
             3 => Interrupt::MachineSoft,
-            4 => Interrupt::UserTimer,
             5 => Interrupt::SupervisorTimer,
             7 => Interrupt::MachineTimer,
-            8 => Interrupt::UserExternal,
             9 => Interrupt::SupervisorExternal,
             11 => Interrupt::MachineExternal,
             _ => Interrupt::Unknown,
@@ -84,6 +80,8 @@ impl Exception {
             12 => Exception::InstructionPageFault,
             13 => Exception::LoadPageFault,
             15 => Exception::StorePageFault,
+            18 => Exception::SoftwareCheck,
+            19 => Exception::HardwareError,
             _ => Exception::Unknown,
         }
     }
