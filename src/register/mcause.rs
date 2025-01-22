@@ -22,6 +22,8 @@ pub enum Interrupt {
     MachineTimer = 7,
     SupervisorExternal = 9,
     MachineExternal = 11,
+    RasLpInterrupt = 35,
+    RasHpInterrupt = 43,
     Unknown,
 }
 
