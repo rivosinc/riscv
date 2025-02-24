@@ -30,6 +30,18 @@ impl Menvcfg {
         self.bits.get_bit(0)
     }
 
+    /// Landing Pad Enable
+    #[inline]
+    pub fn lpe(&self) -> bool {
+        self.bits.get_bit(2)
+    }
+
+    /// Shadow Stack Enable
+    #[inline]
+    pub fn sse(&self) -> bool {
+        self.bits.get_bit(3)
+    }
+
     /// Cache Block Invalidate instruction Enable
     #[inline]
     pub fn cbie(&self) -> CBIE {
@@ -52,6 +64,20 @@ impl Menvcfg {
     #[inline]
     pub fn cbze(&self) -> bool {
         self.bits.get_bit(7)
+    }
+
+    /// Double Trap Enable
+    #[cfg(riscv64)]
+    #[inline]
+    pub fn dte(&self) -> bool {
+        self.bits.get_bit(59)
+    }
+
+    /// PTE A/D Bits Update Enable
+    #[cfg(riscv64)]
+    #[inline]
+    pub fn adue(&self) -> bool {
+        self.bits.get_bit(61)
     }
 
     /// PBMTE controls whether the Svpbmt extension is available for use in S-mode and G-stage
@@ -79,6 +105,14 @@ set_clear_csr!(
     /// Fence of I/O implies Memory
     , set_fiom, clear_fiom, 1 << 0);
 
+set_clear_csr!(
+    /// Landing Pad Enable
+    , set_lpe, clear_lpe, 1 << 2);
+
+set_clear_csr!(
+    /// Shadow Stack Enable
+    , set_sse, clear_sse, 1 << 3);
+
 /// Cache Block Invalidate instruction Enable
 #[inline]
 pub unsafe fn set_cbie(cbie: CBIE) {
@@ -94,6 +128,16 @@ set_clear_csr!(
 set_clear_csr!(
     /// Cache Block Zero instruction Enable
     , set_cbze, clear_cbze, 7 << 0);
+
+#[cfg(riscv64)]
+set_clear_csr!(
+    /// Double Trap enable
+    , set_dte, clear_dte, 1 << 59);
+
+#[cfg(riscv64)]
+set_clear_csr!(
+    /// PTE A/D Bits Update Enable
+    , set_adue, clear_adue, 1 << 61);
 
 #[cfg(riscv64)]
 set_clear_csr!(
