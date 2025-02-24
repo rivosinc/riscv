@@ -66,6 +66,9 @@ pub mod sireg;
 pub mod siselect;
 pub mod stopei;
 
+// Hypervisor Trap Setup
+pub mod hstatus;
+
 // Machine Information Registers
 pub mod marchid;
 pub mod mhartid;
