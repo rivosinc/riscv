@@ -101,3 +101,10 @@ set_clear_csr!(
 set_clear_csr!(
     /// Machine External Interrupt Enable
     , set_mext, clear_mext, 1 << 11);
+set_clear_csr!(
+    /// Machine RAS High Priority Interrupt Enable
+    , set_ras_hp, clear_ras_hp, 1 << 43);
+set_clear_csr!(
+    /// Machine RAS Low Priority Interrupt Enable
+    , set_ras_lp, clear_ras_lp, 1 << 35);
+            
